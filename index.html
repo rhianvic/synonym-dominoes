@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Synonym Dominoes: Actions &amp; Reuse</title>
+<style>
+:root{--bg:#fbf6ee;--fg:#2b2118;--card:#fff;--ac:#d9701a;--mut:#85766a;--bd:#e5d6c3;--ok:#2f8f5b;--end:#ffe3bf;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1c1713;--fg:#f3e9dc;--card:#2a231c;--ac:#f08c33;--mut:#a89888;--bd:#443a2f;--ok:#57c58b;--end:#5a3c1c}}
+:root[data-theme="dark"]{--bg:#1c1713;--fg:#f3e9dc;--card:#2a231c;--ac:#f08c33;--mut:#a89888;--bd:#443a2f;--ok:#57c58b;--end:#5a3c1c}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif}
+#app{max-width:1180px;margin:0 auto;padding:16px;display:grid;gap:14px;grid-template-columns:1fr}
+@media(min-width:800px){#app{grid-template-columns:1fr 280px}}
+h1{margin:0;font-size:22px;grid-column:1/-1}h1 small{display:block;font-size:13px;color:var(--mut);font-weight:400}
+h2{margin:0 0 8px;font-size:16px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px}
+button,input{font:inherit;color:inherit}
+.btn{background:var(--ac);color:#fff;border:0;border-radius:10px;padding:8px 14px;cursor:pointer;margin:4px 6px 0 0}
+.btn.alt{background:transparent;color:var(--fg);border:1px solid var(--bd)}
+input{padding:8px 10px;border:1px solid var(--bd);border-radius:10px;background:var(--bg)}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.pl{padding:3px 10px;border:1px solid var(--bd);border-radius:99px;font-size:14px}
+.pl.turn{background:var(--ac);color:#fff;border-color:var(--ac)}
+#app>*,.card{min-width:0}
+#app>div{grid-template-columns:minmax(0,1fr)}
+.board{background:radial-gradient(ellipse at 50% 25%,#2f8a5e 0%,#1f6b4a 62%,#16503a 100%);border-radius:16px;padding:18px;box-shadow:inset 0 0 0 7px #6b4423,inset 0 0 0 9px #44290f,inset 0 8px 28px rgba(0,0,0,.5)}
+.board .msg{color:#d6eadf}
+.rows{display:grid;row-gap:22px;justify-content:center}
+.brow{display:grid;grid-template-columns:repeat(var(--n),var(--tw));column-gap:8px}
+.cell{position:relative;height:64px}
+.cell.dn::after{content:"";position:absolute;left:50%;top:100%;width:6px;height:22px;margin-left:-3px;background:linear-gradient(#efe6cc,#b9ad8a);border-radius:3px;box-shadow:0 2px 3px rgba(0,0,0,.3)}
+.t{position:relative;display:flex;flex:none;width:var(--tw);height:64px;border-radius:11px;background:linear-gradient(160deg,#fffef8,#efe7d0);border:1px solid #cdc2a3;color:#2b2118;text-align:center;box-shadow:inset 0 1px 0 #fff,inset 0 -3px 0 rgba(0,0,0,.07),0 3px 0 #b5a984,0 7px 10px rgba(0,0,0,.35);user-select:none}
+.t.rv{flex-direction:row-reverse}
+.t::before{content:"";position:absolute;left:50%;top:9px;bottom:9px;width:2px;margin-left:-1px;background:#8d8266;border-radius:2px;opacity:.7}
+.t::after{content:"";position:absolute;left:50%;top:50%;width:9px;height:9px;margin:-4.5px 0 0 -4.5px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#f6d98a,#a57a1c);box-shadow:0 1px 2px rgba(0,0,0,.5);z-index:1}
+.t span{position:relative;flex:1;min-width:0;display:flex;align-items:center;justify-content:center;padding:4px 6px;font-size:clamp(10px,calc(var(--tw)*.08),12px);font-weight:600;line-height:1.15;overflow-wrap:anywhere;hyphens:auto}
+.t span:first-child{border-radius:10px 0 0 10px}.t span:last-child{border-radius:0 10px 10px 0}
+.t.rv span:first-child{border-radius:0 10px 10px 0}.t.rv span:last-child{border-radius:10px 0 0 10px}
+.t span.end{background:linear-gradient(160deg,#ffe9b8,#ffc968);color:#4a2c05;font-weight:700;box-shadow:inset 0 0 0 2px rgba(217,112,26,.55)}
+.t span.end::before{content:attr(data-tag);position:absolute;top:2px;left:0;right:0;font-size:8px;letter-spacing:.08em;font-weight:800;color:#a8541a}
+@keyframes pop{0%{transform:scale(.6) translateY(-14px);opacity:0}60%{transform:scale(1.07);opacity:1}100%{transform:none;opacity:1}}
+.t.pop{animation:pop .55s cubic-bezier(.2,.9,.3,1.2) both}
+.hand-card{position:sticky;bottom:calc(8px + env(safe-area-inset-bottom,0px));z-index:5;box-shadow:0 -6px 22px rgba(0,0,0,.28)}
+.hand-row{--tw:150px;display:flex;flex-wrap:wrap;gap:12px 10px;padding:12px 4px 8px}
+@media(max-width:799px){.hand-row{--tw:128px;flex-wrap:nowrap;overflow-x:auto;padding:14px 4px 10px;scroll-snap-type:x proximity}.hand-row .t{scroll-snap-align:start}}
+.hand{cursor:pointer;transition:transform .15s,box-shadow .15s,filter .15s;filter:grayscale(.55) brightness(.82)}
+.hand.ok{filter:none;box-shadow:inset 0 1px 0 #fff,inset 0 -3px 0 rgba(0,0,0,.07),0 3px 0 #b5a984,0 0 0 3px var(--ok),0 8px 14px rgba(0,0,0,.35)}
+.hand.ok:hover{transform:translateY(-7px)}
+.hand.sel{transform:translateY(-10px);outline:3px solid var(--ac);outline-offset:2px}
+@media(prefers-reduced-motion:reduce){.t.pop{animation:none}.hand{transition:none}}
+.msg{color:var(--mut);font-size:14px;min-height:20px}
+table{width:100%;border-collapse:collapse;font-size:14px}td,th{padding:5px 4px;text-align:left;border-bottom:1px solid var(--bd)}td:nth-child(n+3),th:nth-child(n+3){text-align:right}
+.me{font-weight:700}
+</style></head><body>
+<div id="app"><div class="card">Loading…</div></div>
+<script>
+const G=[["reuse","use it again","give it another use"],["recycle","give an eco-friendly end","turn waste into new material"],["repair","fix","mend"],["donate","give away","hand over for free"],["reduce","cut down","use less"],["repurpose","convert for a new use","find a new function"],["throw away","discard","get rid of"],["refill","fill up again","top up"],["upcycle","turn old into better","give old things new value"],["swap","exchange","trade"]];
+const $=s=>document.querySelector(s),clone=o=>JSON.parse(JSON.stringify(o));
+const esc=t=>String(t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+let db,me,S=null,P={},SC={},sel=null,ready=false,nick="",note="";
+const seen=new Set(),popT={};let popOk=false,lastL="";
+const myName=()=>(S&&S.names&&S.names[me])||(P[me]&&P[me].name)||nick||"Player";
+function connect(){return new Promise((res,rej)=>{const ws=new WebSocket((location.protocol=="https:"?"wss://":"ws://")+location.host),docs={},ls=[];
+ const fire=()=>ls.forEach(f=>f()),send=o=>ws.send(JSON.stringify(o));
+ const db={doc:p=>({set:async d=>{docs[p]=JSON.parse(JSON.stringify(d));send({t:"set",p,d});fire()},delete:async()=>{delete docs[p];send({t:"del",p});fire()},
+  onSnapshot:cb=>{const f=()=>cb({id:p.split("/").pop(),exists:p in docs,data:()=>docs[p]});ls.push(f);f()}}),
+  collection:c=>({onSnapshot:cb=>{const f=()=>cb({docs:Object.keys(docs).filter(k=>k.startsWith(c+"/")&&!k.slice(c.length+1).includes("/")).map(k=>({id:k.split("/").pop(),data:()=>docs[k]}))});ls.push(f);f()}})};
+ ws.onmessage=e=>{const m=JSON.parse(e.data);if(m.t=="all"){Object.assign(docs,m.docs);res(db)}else if(m.t=="set")docs[m.p]=m.d;else if(m.t=="del")delete docs[m.p];fire()};
+ ws.onerror=()=>rej();ws.onclose=()=>{note="Disconnected. Reload the page.";render()};
+ setInterval(()=>{if(ws.readyState==1)send({t:"ping"})},25000)})}
+(async()=>{
+ try{me=localStorage.dmid||(localStorage.dmid=Math.random().toString(36).slice(2,10));db=await connect()}catch(e){}
+ if(!db||!me){ready=true;render();return}
+ db.doc("game/state").onSnapshot(s=>{S=s.exists?s.data():null;ready=true;sel=null;note="";render()},e=>{note="Connection problem: "+e.message;ready=true;render()});
+ db.collection("players").onSnapshot(q=>{P={};q.docs.forEach(d=>P[d.id]=d.data());render()});
+ db.collection("scores").onSnapshot(q=>{SC={};q.docs.forEach(d=>SC[d.id]=d.data());render()});
+ setTimeout(()=>{if(!ready){ready=true;render()}},10000);
+})();
+function deck(){const d=[],pk=g=>G[g][Math.random()*3|0];
+ for(let a=0;a<G.length;a++)for(let b=a;b<G.length;b++){const x=pk(a);let y=pk(b);if(a==b)while(y==x)y=pk(b);d.push({a:x,x:a,b:y,y:b})}
+ return d.sort(()=>Math.random()-.5)}
+const flip=p=>({a:p.b,x:p.y,b:p.a,y:p.x});
+const put=ns=>db.doc("game/state").set(ns);
+function join(){const n=nick.trim().slice(0,20);if(!n){note="Type a nickname first.";render();return}db.doc("players/"+me).set({name:n})}
+function leave(){db.doc("players/"+me).delete()}
+function start(){const ids=Object.keys(P);if(ids.length<2){note="Wait for more players.";render();return}
+ const d=deck(),per=ids.length>6?6:7,order=ids.sort(()=>Math.random()-.5),hands={},names={};
+ order.forEach(i=>{hands[i]=d.splice(0,per);names[i]=P[i].name});
+ put({phase:"play",order,names,hands,yard:d,chain:[],nl:0,turn:0,passes:0,winner:null,log:"Game started! "+names[order[0]]+" goes first."})}
+function backToLobby(){put({phase:"lobby"})}
+function addScore(pts,win){const c=SC[me]||{points:0,wins:0};db.doc("scores/"+me).set({name:myName(),points:c.points+pts,wins:c.wins+(win?1:0)})}
+async function play(i,side){const ns=clone(S),h=ns.hands[me],c=ns.chain;let p=h.splice(i,1)[0];
+ if(!c.length)c.push(p);
+ else if(side=="R"){if(p.x!=c[c.length-1].y)p=flip(p);c.push(p)}
+ else{if(p.y!=c[0].x)p=flip(p);c.unshift(p);ns.nl=(ns.nl||0)+1}
+ const win=h.length==0;ns.passes=0;ns.log=myName()+" matched “"+p.a+"” with “"+p.b+"”";
+ if(win){ns.phase="over";ns.winner=me;ns.log+=" and won the round!"}else ns.turn=(ns.turn+1)%ns.order.length;
+ await put(ns);addScore(10+(win?30:0),win)}
+async function draw(){const ns=clone(S);ns.hands[me].push(ns.yard.pop());ns.log=myName()+" drew a tile";await put(ns)}
+async function pass(){const ns=clone(S);ns.passes++;ns.log=myName()+" passed";
+ if(ns.passes>=ns.order.length){let b=ns.order[0];ns.order.forEach(i=>{if(ns.hands[i].length<ns.hands[b].length)b=i});ns.phase="over";ns.winner=b;ns.log="Blocked game: fewest tiles wins."}
+ else ns.turn=(ns.turn+1)%ns.order.length;await put(ns)}
+function pick(i){if(!S||S.phase!="play"||S.order[S.turn]!=me)return;
+ const p=S.hands[me][i],c=S.chain;if(!c.length){play(i,"R");return}
+ const L=c[0],R=c[c.length-1],l=p.x==L.x||p.y==L.x,r=p.x==R.y||p.y==R.y;
+ if(!l&&!r){note="No match: look for a synonym of an end term.";render();return}
+ if(l&&r&&L.x!=R.y){sel=i;render();return}
+ play(i,r?"R":"L")}
+const tile=(p,cls,extra)=>`<div class="t ${cls||""}" ${extra||""}><span>${esc(p.a)}</span><span>${esc(p.b)}</span></div>`;
+function rank(){const rows=Object.entries(SC).sort((a,b)=>b[1].points-a[1].points);
+ return `<div class="card"><h2>🏆 Ranking</h2>${rows.length?`<table><tr><th>#</th><th>Player</th><th>Pts</th><th>Wins</th></tr>${rows.map(([id,s],i)=>`<tr class="${id==me?"me":""}"><td>${i+1}</td><td>${esc(s.name)}</td><td>${s.points}</td><td>${s.wins}</td></tr>`).join("")}</table>`:`<p class="msg">No points yet. Be the first!</p>`}<p class="msg">+10 per match, +30 for winning a round.</p></div>`}
+function lobby(){seen.clear();popOk=false;const ids=Object.keys(P);
+ return `<div class="card"><h2>Lobby</h2><p>Match each tile with a <b>synonym</b> of the end word. Ideal: 4 or more players.</p>
+ ${P[me]?`<div class="row">${ids.map(i=>`<span class="pl ${i==me?"turn":""}">${esc(P[i].name)}</span>`).join("")}</div><button class="btn" onclick="start()">Start game (${ids.length} joined)</button><button class="btn alt" onclick="leave()">Leave</button>`
+ :`<div class="row"><input id="nick" maxlength="20" placeholder="Your nickname" value="${esc(nick)}" oninput="nick=this.value"><button class="btn" onclick="join()">Join</button></div>${ids.length?`<p class="msg">Waiting: ${ids.map(i=>esc(P[i].name)).join(", ")}</p>`:""}`}
+ <p class="msg">${esc(note)}</p></div>`}
+const tkey=p=>[p.a,p.b].sort().join("|");
+function layout(){const w=$("#app").clientWidth-32,wide=innerWidth>=800,col=wide?w-294:w,inner=col-66,gap=8,max=150;
+ const n=Math.max(2,Math.floor((inner+gap)/(max+gap))),tw=Math.max(96,Math.min(max,Math.floor((inner-(n-1)*gap)/n)));return{n,tw}}
+// Serpentina: a 1ª peça jogada fica na posição 0; pela ponta final a cobra desce, pela inicial ela sobe.
+function boardHTML(c,nl,lay){
+ if(!c.length)return `<span class="msg">Empty board: the first tile can be anything.</span>`;
+ const n=lay.n,len=c.length,rmin=Math.floor(-nl/n),rmax=Math.floor((len-1-nl)/n),now=Date.now();let h="";
+ for(let r=rmin;r<=rmax;r++){const ltr=((r%2)+2)%2==0;let cells="";
+  for(let k=0;k<n;k++){const s=ltr?r*n+k:r*n+n-1-k,i=s+nl;
+   if(i<0||i>=len){cells+=`<div class="cell"></div>`;continue}
+   const p=c[i],key=tkey(p);
+   if(!seen.has(key)){seen.add(key);if(popOk)popT[key]=now}
+   const el=popT[key]?now-popT[key]:1e9,pop=el<550,dn=s==r*n+n-1&&i+1<len;
+   cells+=`<div class="cell${dn?" dn":""}"><div class="t${ltr?"":" rv"}${pop?" pop":""}"${pop?` style="animation-delay:-${el}ms"`:""}><span class="${i==0?"end":""}" data-tag="START">${esc(p.a)}</span><span class="${i==len-1?"end":""}" data-tag="END">${esc(p.b)}</span></div></div>`}
+  h+=`<div class="brow">${cells}</div>`}
+ return `<div class="rows">${h}</div>`}
+function game(){const c=S.chain,cur=S.order[S.turn],mine=cur==me&&S.phase=="play",h=S.hands[me]||[],L=c[0],R=c[c.length-1];
+ const can=p=>!c.length||p.x==L.x||p.y==L.x||p.x==R.y||p.y==R.y,has=h.some(can),over=S.phase=="over";
+ let ctl="";
+ if(over)ctl=`<b>🎉 ${esc(S.names[S.winner])} wins!</b> <button class="btn" onclick="backToLobby()">Back to lobby</button>`;
+ else if(mine&&!has)ctl=S.yard.length?`<button class="btn" onclick="draw()">Draw a tile (${S.yard.length} left)</button>`:`<button class="btn" onclick="pass()">No moves: pass</button>`;
+ else if(sel!==null)ctl=`<button class="btn" onclick="play(sel,'L')">◀ Start: ${esc(L.a)}</button><button class="btn" onclick="play(sel,'R')">End: ${esc(R.b)} ▶</button>`;
+ else ctl=mine?"<b>Your turn!</b> Pick a green tile.":`Waiting for <b>${esc(S.names[cur])}</b>…`;
+ const lay=layout();lastL=lay.n+"x"+lay.tw;
+ const bd=boardHTML(c,S.nl||0,lay);popOk=true;
+ return `<div class="card"><div class="row">${S.order.map(i=>`<span class="pl ${i==cur&&!over?"turn":""}">${esc(S.names[i])}${i==me?" (you)":""}: ${S.hands[i].length}</span>`).join("")}</div>
+ <div class="board" style="--n:${lay.n};--tw:${lay.tw}px">${bd}</div>
+ <p class="msg">${esc(S.log||"")}</p></div>
+ ${S.order.includes(me)?`<div class="card hand-card"><div>${ctl}</div><p class="msg">${esc(note)}</p><div class="hand-row">${h.map((p,i)=>tile(p,"hand "+(mine&&can(p)?"ok":"")+(sel===i?" sel":""),`onclick="pick(${i})"`)).join("")}</div></div>`:`<div class="card"><div>${ctl}</div><p class="msg">${esc(note)}</p><p class="msg">You’re watching this round.</p></div>`}`}
+function render(){const a=$("#app");if(!ready)return;
+ if(!db||!me){a.innerHTML=`<h1>Synonym Dominoes</h1><div class="card"><h2>Can’t connect</h2><p>The game server is not responding. Reload the page in a few seconds.</p></div>`;return}
+ const f=document.activeElement&&document.activeElement.id=="nick";
+ a.innerHTML=`<h1>🎲 Synonym Dominoes<small>Theme: Actions &amp; Reuse. Match each end with a word that means the same thing.</small></h1><div style="display:grid;gap:14px">${S&&S.phase&&S.phase!="lobby"&&S.order?game():lobby()}</div>${rank()}`;
+ if(f){const n=$("#nick");if(n){n.focus();n.setSelectionRange(n.value.length,n.value.length)}}}
+let rt;addEventListener("resize",()=>{clearTimeout(rt);rt=setTimeout(()=>{if(!ready||!S||!S.order||S.phase=="lobby")return;const l=layout();if(l.n+"x"+l.tw!=lastL)render()},150)});
+</script></body></html>
